@@ -36,10 +36,11 @@ typedef nx_struct route_message {
   nx_uint8_t seq;
   nx_uint8_t self_send_cnt;
   nx_uint8_t length;
-  nx_uint8_t payload[];
+  nx_uint8_t payload[32];
 }route_message_t;
 
 void print_route_message(route_message_t* rm){
+  int i;
   switch((rm->type_gradient& 0xf0)>>4) {
     case TYPE_JREQ:
       printf(" JREQ");
@@ -60,7 +61,7 @@ void print_route_message(route_message_t* rm){
       printf(" SETTING");
       break;
   }
-  printf(" %d %d %d %d %d %d %d %d %d %d %d\n",
+  printf(" %d %d %d %d %d %d %d %d %d %d %d",
           rm->last_hop_addr,
           rm->next_hop_addr,
           rm->src_addr,
@@ -73,6 +74,14 @@ void print_route_message(route_message_t* rm){
           rm->self_send_cnt,
           rm->length
         );
+  if(rm->length!=0) {
+    printf(" ");
+    for(i=0;i<rm->length;i++) {
+      //printf("t");
+      printf("%x ",rm->payload[i]);
+    }
+  }
+  printf("\n");
 }
 
 typedef struct link_quality_entry {

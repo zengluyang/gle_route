@@ -38,6 +38,7 @@ implementation {
 
 	event void AMControl.stopDone(error_t error) {}
 
+
 	event message_t* Receive.receive(message_t *msg, 
 		void *payload, uint8_t len) {
 		route_message_t *rm;
@@ -48,6 +49,9 @@ implementation {
 		rm = (route_message_t *) payload;
 		sm = (route_message_t *) call Packet.getPayload(&packet,sizeof(route_message_t));
 		lqe = access_link_quality_table(rm->last_hop_addr);
+
+		
+
 		if(lqe->node_id==0) {
 			lqe->node_id = rm->last_hop_addr;
 			lqe->recv_cnt = 1;
@@ -66,6 +70,7 @@ implementation {
 			sm->type_gradient = TYPE_JRES<<4 | self_gradient;
 			sm->energy_lqi = calc_uniform_energy(self_energy)<<4 | lqe->local_lqi; // TODO 
 			sm->self_send_cnt = send_cnt;
+			sm->length = 0;
 			//printf("sm->energy_lqi: %d\n",sm->energy_lqi);
 			if(!busy && call AMSend.send(AM_BROADCAST_ADDR,&packet, sizeof(route_message_t))==SUCCESS) {
 				busy = TRUE;
@@ -76,6 +81,9 @@ implementation {
 			printf("ROOT RECV");
 			print_route_message(rm);
 		}
+
+
+
 		return msg;
 	}
 
@@ -89,6 +97,7 @@ implementation {
 		}
 		busy=FALSE;
 	}
+
 
 
 }
