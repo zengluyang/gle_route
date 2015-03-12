@@ -22,7 +22,7 @@ implementation {
 	message_t packet;
 	int self_gradient = 15;
 	int self_energy = MAX_ENERGY;
-	int send_cnt = 1;
+	uint16_t send_cnt = 1;
 	event void Boot.booted() {
 		printf("LEAF BOOT\n");
 		printf("sizeof(route_message_t):%d\n",sizeof(route_message_t));
@@ -52,25 +52,38 @@ implementation {
 			call AMControl.start();
 		}
 	}
+	int last_send_id = 0;
 	event void JREQ_Timer.fired() {
 		link_quality_entry_t *lqe;
         route_message_t* rpkt;
         int to_send_node_id;
-        for (
-        	to_send_node_id = send_cnt % (LQT_SIZE),lqe = access_link_quality_table(to_send_node_id);
-        	lqe->node_id==0 && to_send_node_id<LQT_SIZE;
-        	lqe = access_link_quality_table(to_send_node_id++)
-        ) {
-        	//printf("LEAF DEBUG to_send_node_id %d lqe->node_id: %d\n",to_send_node_id,lqe->node_id);
+        if(send_cnt>200 && current_best_father_node!=0 && self_gradient!=0xf) {
+        	return ;
         }
-
+        to_send_node_id = last_send_id;
+        lqe = access_link_quality_table(to_send_node_id);
+        //printf("LEAF DEBUG before for loop to_send_node_id:%d last_send_id:%d\n",to_send_node_id,last_send_id);
+        for (
+        	;
+        	lqe->node_id==0 && to_send_node_id<LQT_SIZE;
+        	to_send_node_id++
+        ) {
+			lqe = access_link_quality_table(to_send_node_id);
+        	if(lqe->node_id!=0)
+        		printf("LEAF DEBUG to_send_node_id %d lqe->node_id: %d %d %d\n",to_send_node_id,lqe->node_id,lqe->recv_cnt,lqe->send_cnt);
+        }
+        if(to_send_node_id==256) {
+        	last_send_id = 0;
+        } else {
+        	 last_send_id = to_send_node_id + 1;
+        }
         rpkt = (route_message_t*) call Packet.getPayload(&packet, sizeof(route_message_t));
         rpkt->last_hop_addr = TOS_NODE_ID;
         rpkt->next_hop_addr = 0xff;
         rpkt->src_addr = TOS_NODE_ID;
         rpkt->dst_addr = 0xff;
         rpkt->type_gradient = TYPE_JREQ<<4 | self_gradient;
-        rpkt->energy_lqi = calc_uniform_energy(self_energy)<<4 | lqe->local_lqi;
+        rpkt->energy_lqi = calc_uniform_energy(self_energy)<<4 | lqe->recv_cnt*0xf/lqe->send_cnt;
         rpkt->pair_addr = lqe->node_id;
         rpkt->seq = 0;
         rpkt->self_send_cnt = send_cnt;
@@ -80,6 +93,7 @@ implementation {
         	print_route_message(rpkt);
         	busy=TRUE;
         }
+        //printf("LEAF DEBUG after for loop to_send_node_id:%d last_send_id:%d\n",to_send_node_id,last_send_id);
         refresh_best_father_node();
         print_link_quality_table();
         print_father_node_table();
@@ -95,13 +109,26 @@ implementation {
 		link_quality_entry_t *lqe;
 		father_node_table_entry_t *fne;
  		int i;
+ 		int to_send_node_id;
 
 		rm = (route_message_t *) payload;
 		sm = (route_message_t *) call Packet.getPayload(&packet,sizeof(route_message_t));
 		lqe = access_link_quality_table(rm->last_hop_addr);
 
 
-		if((rm->type_gradient & 0xf0)>>4 == TYPE_JREQ) {
+		if(rm->pair_addr == TOS_NODE_ID) {
+				lqe->local_lqi = rm->energy_lqi & 0x0f;
+		}
+		lqe->send_cnt = rm->self_send_cnt;
+		if(lqe->node_id==0) {
+			lqe->node_id = rm->last_hop_addr;
+			lqe->recv_cnt = 1;
+			
+		} else {
+			lqe->recv_cnt++;
+		}
+
+		if((rm->type_gradient & 0xf0)>>4 == TYPE_JREQ && self_gradient!=0X0f) {
 			printf("LEAF RECV %d",len);
 			print_route_message(rm);
 			sm->last_hop_addr = TOS_NODE_ID;
@@ -112,6 +139,7 @@ implementation {
 			sm->energy_lqi = calc_uniform_energy(self_energy)<<4 | lqe->local_lqi; // TODO 
 			sm->pair_addr = lqe->node_id;
 			sm->length = 0;
+			sm->self_send_cnt = send_cnt;
 			//printf("sm->energy_lqi: %d\n",sm->energy_lqi);
 			if(!busy && call AMSend.send(AM_BROADCAST_ADDR,&packet, sizeof(route_message_t))==SUCCESS) {
 				busy = TRUE;
@@ -131,6 +159,7 @@ implementation {
 			sm->energy_lqi = calc_uniform_energy(self_energy)<<4 | lqe->local_lqi; // TODO 
 			sm->pair_addr = lqe->node_id;
 			sm->length = rm->length;
+			sm->self_send_cnt = send_cnt;
 			for(i=0;i<sm->length;i++) {
 				sm->payload[i] = rm->payload[i];
 			}
@@ -146,17 +175,6 @@ implementation {
 			return msg;
 		}
 
-		if(rm->pair_addr == TOS_NODE_ID) {
-				lqe->local_lqi = rm->energy_lqi & 0x0f;
-		}
-		lqe->send_cnt = rm->self_send_cnt;
-		if(lqe->node_id==0) {
-			lqe->node_id = rm->last_hop_addr;
-			lqe->recv_cnt = 1;
-			
-		} else {
-			lqe->recv_cnt++;
-		}
 
 		if ((rm->type_gradient & 0xf0)>>4 == TYPE_JRES) {
 			printf("LEAF RECV");

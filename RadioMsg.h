@@ -33,8 +33,8 @@ typedef nx_struct route_message {
   nx_uint8_t type_gradient;
   nx_uint8_t energy_lqi;
   nx_uint8_t pair_addr;
-  nx_uint8_t seq;
-  nx_uint8_t self_send_cnt;
+  nx_uint16_t seq;
+  nx_uint16_t self_send_cnt;
   nx_uint8_t length;
   nx_uint8_t payload[32];
 }route_message_t;
@@ -78,7 +78,7 @@ void print_route_message(route_message_t* rm){
     printf(" ");
     for(i=0;i<rm->length;i++) {
       //printf("t");
-      printf("%x ",rm->payload[i]);
+      printf("%c",(char)rm->payload[i]);
     }
   }
   printf("\n");
