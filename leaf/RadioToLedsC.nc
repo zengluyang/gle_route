@@ -23,6 +23,7 @@ implementation {
 	int self_gradient = 15;
 	int self_energy = MAX_ENERGY;
 	uint16_t send_cnt = 1;
+	int JREQ_Timer_interval = SEND_JREQ_INTERVAL;
 	event void Boot.booted() {
 		printf("LEAF BOOT\n");
 		printf("sizeof(route_message_t):%d\n",sizeof(route_message_t));
@@ -40,13 +41,16 @@ implementation {
   		fne = access_father_node_table(current_best_father_node);
   		if(current_best_father_node !=0 && fne->gradient + 1< self_gradient)
 			self_gradient = fne->gradient + 1;
+		add_to_best_father_node_history_table(current_best_father_node);
 	}
 
 	event void AMControl.startDone(error_t err) {
 		if(err==SUCCESS) {
 			//good!
 			init_link_quality_table();
-			call JREQ_Timer.startPeriodic(SEND_JREQ_INTERVAL);
+			init_father_node_table();
+			init_best_father_node_history_table();
+			call JREQ_Timer.startOneShot(SEND_JREQ_INTERVAL);
 		} else {
 			
 			call AMControl.start();
@@ -97,6 +101,17 @@ implementation {
         refresh_best_father_node();
         print_link_quality_table();
         print_father_node_table();
+        print_best_father_history_table();
+        if(is_best_father_history_table_stable()) {
+        	if(JREQ_Timer_interval<=30000) {
+        		JREQ_Timer_interval *= 2;
+        		JREQ_Timer.startOneShot(JREQ_Timer_interval);
+        	} else {
+        		//do nothing, so that JREQ_Timer stops and waits for time out to be restarted.
+        	}    	
+        } else {
+        	JREQ_Timer.startOneShot(JREQ_Timer_interval);
+        }
             //printfflush();
     }
 
@@ -116,7 +131,7 @@ implementation {
 		lqe = access_link_quality_table(rm->last_hop_addr);
 
 
-		if(rm->pair_addr == TOS_NODE_ID) {
+		if(rm->pair_addr == TOS_NODE_ID && (rm->energy_lqi & 0x0f)!=0) {
 				lqe->local_lqi = rm->energy_lqi & 0x0f;
 		}
 		lqe->send_cnt = rm->self_send_cnt;
@@ -136,7 +151,7 @@ implementation {
 			sm->src_addr = TOS_NODE_ID;
 			sm->dst_addr = rm->src_addr;
 			sm->type_gradient = TYPE_JRES<<4 | self_gradient;
-			sm->energy_lqi = calc_uniform_energy(self_energy)<<4 | lqe->local_lqi; // TODO 
+			sm->energy_lqi = calc_uniform_energy(self_energy)<<4 | lqe->recv_cnt*0xf/lqe->send_cnt; // TODO 
 			sm->pair_addr = lqe->node_id;
 			sm->length = 0;
 			sm->self_send_cnt = send_cnt;
@@ -156,7 +171,7 @@ implementation {
 			sm->src_addr = rm->src_addr;
 			sm->dst_addr = rm->dst_addr;
 			sm->type_gradient = TYPE_DATA<<4 | self_gradient;
-			sm->energy_lqi = calc_uniform_energy(self_energy)<<4 | lqe->local_lqi; // TODO 
+			sm->energy_lqi = calc_uniform_energy(self_energy)<<4 | lqe->recv_cnt*0xf/lqe->send_cnt; // TODO 
 			sm->pair_addr = lqe->node_id;
 			sm->length = rm->length;
 			sm->self_send_cnt = send_cnt;

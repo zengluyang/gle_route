@@ -220,7 +220,44 @@ uint8_t calc_best_father_node() {
   return best_node_id;
 }
 
+#define BEST_FATHER_NODE_HISTORY_TABLE_SIZE 4
+uint8_t best_father_node_history_table[BEST_FATHER_NODE_HISTORY_TABLE_SIZE];
 
+void init_best_father_node_history_table() {
+  int i;
+  for(i=0;i<BEST_FATHER_NODE_HISTORY_TABLE_SIZE;i++) {
+    best_father_node_history_table[i] = 0;
+  }
+}
 
+void add_to_best_father_node_history_table(uint8_t node_id) {
+  int i;
+  for(i=0;i<BEST_FATHER_NODE_HISTORY_TABLE_SIZE-1;i++) {
+    best_father_node_history_table[i]=best_father_node_history_table[i+1];
+  }
+  best_father_node_history_table[BEST_FATHER_NODE_HISTORY_TABLE_SIZE-1] = node_id;
+}
+
+bool is_best_father_history_table_stable() {
+  int i;
+  for(i=0;i<BEST_FATHER_NODE_HISTORY_TABLE_SIZE-1;i++) {
+    if(best_father_node_history_table[BEST_FATHER_NODE_HISTORY_TABLE_SIZE-i-1]==0) {
+      return FALSE;
+    }
+    if(best_father_node_history_table[BEST_FATHER_NODE_HISTORY_TABLE_SIZE-i-1]!=best_father_node_history_table[BEST_FATHER_NODE_HISTORY_TABLE_SIZE-i-2]) {
+      return FALSE;
+    }
+  }
+  return TRUE;
+}
+
+void print_best_father_history_table() {
+  int i;
+  printf("BFHT: ");
+  for(i=0;i<BEST_FATHER_NODE_HISTORY_TABLE_SIZE;i++) {
+    printf("%d ",best_father_node_history_table[i]);
+  }
+  printf("\n");
+}
 
 #endif
