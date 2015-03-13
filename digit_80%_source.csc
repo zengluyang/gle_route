@@ -14,8 +14,8 @@
       se.sics.cooja.radiomediums.UDGM
       <transmitting_range>280.0</transmitting_range>
       <interference_range>360.0</interference_range>
-      <success_ratio_tx>0.8</success_ratio_tx>
-      <success_ratio_rx>0.8</success_ratio_rx>
+      <success_ratio_tx>0.98</success_ratio_tx>
+      <success_ratio_rx>0.98</success_ratio_rx>
     </radiomedium>
     <events>
       <logoutput>40000</logoutput>
@@ -777,8 +777,8 @@
       <breakpoints />
       <interface_config>
         se.sics.cooja.interfaces.Position
-        <x>42.676420020953145</x>
-        <y>-0.1558892417371758</y>
+        <x>41.08605906248363</x>
+        <y>3.0248326752018477</y>
         <z>0.0</z>
       </interface_config>
       <interface_config>
@@ -815,12 +815,12 @@
   <plugin>
     se.sics.cooja.plugins.LogListener
     <plugin_config>
-      <filter>ROOT</filter>
+      <filter>DATA</filter>
       <formatted_time />
       <coloring />
     </plugin_config>
     <width>1015</width>
-    <z>1</z>
+    <z>2</z>
     <height>240</height>
     <location_x>400</location_x>
     <location_y>160</location_y>
@@ -884,7 +884,7 @@
       <zoomfactor>500.0</zoomfactor>
     </plugin_config>
     <width>1415</width>
-    <z>10</z>
+    <z>9</z>
     <height>166</height>
     <location_x>0</location_x>
     <location_y>837</location_y>
@@ -910,7 +910,7 @@
       <hidenodests>false</hidenodests>
     </plugin_config>
     <width>500</width>
-    <z>2</z>
+    <z>3</z>
     <height>300</height>
     <location_x>499</location_x>
     <location_y>451</location_y>
@@ -965,7 +965,7 @@
       <scrollpos>0,0</scrollpos>
     </plugin_config>
     <width>350</width>
-    <z>3</z>
+    <z>4</z>
     <height>300</height>
     <location_x>198</location_x>
     <location_y>507</location_y>
@@ -981,7 +981,7 @@
       <viewport>7.545456857510029 0.0 0.0 7.545456857510029 46.98691389892082 41.17625554807781</viewport>
     </plugin_config>
     <width>400</width>
-    <z>4</z>
+    <z>1</z>
     <height>495</height>
     <location_x>1</location_x>
     <location_y>1</location_y>
