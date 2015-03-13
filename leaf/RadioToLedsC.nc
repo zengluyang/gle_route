@@ -103,14 +103,14 @@ implementation {
         print_father_node_table();
         print_best_father_history_table();
         if(is_best_father_history_table_stable()) {
-        	if(JREQ_Timer_interval<=30000) {
-        		JREQ_Timer_interval *= 2;
-        		JREQ_Timer.startOneShot(JREQ_Timer_interval);
+        	if(JREQ_Timer_interval<=10000) {
+        		JREQ_Timer_interval = JREQ_Timer_interval*2;
+        		call JREQ_Timer.startOneShot(JREQ_Timer_interval);
         	} else {
         		//do nothing, so that JREQ_Timer stops and waits for time out to be restarted.
         	}    	
         } else {
-        	JREQ_Timer.startOneShot(JREQ_Timer_interval);
+        	call JREQ_Timer.startOneShot(JREQ_Timer_interval);
         }
             //printfflush();
     }

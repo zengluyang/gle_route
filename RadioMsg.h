@@ -169,6 +169,14 @@ father_node_table_entry_t* access_father_node_table(uint8_t node_id){
   return &(father_node_table[node_id]);
 }
 
+void delete_father_node_table(uint8_t node_id) {
+    father_node_table[node_id].node_id=0;
+    father_node_table[node_id].gradient=0;
+    father_node_table[node_id].energy=0;
+    father_node_table[node_id].lqi=0;
+
+}
+
 void print_father_node_table() {
   int i=0;
   printf("FNT: current:%d. ",current_best_father_node);
@@ -194,9 +202,9 @@ void print_father_node_table() {
   }
   printf("\n");
 }
-#define RANK_A 256
+#define RANK_A 16
 #define RANK_B 16
-#define RANK_C 16
+#define RANK_C 64
 uint32_t calc_father_rank(uint8_t gradient,uint8_t energy,uint8_t lqi) {
   return RANK_A/(gradient+1) + RANK_B*energy + RANK_C*lqi;
 }
@@ -220,7 +228,7 @@ uint8_t calc_best_father_node() {
   return best_node_id;
 }
 
-#define BEST_FATHER_NODE_HISTORY_TABLE_SIZE 4
+#define BEST_FATHER_NODE_HISTORY_TABLE_SIZE 8
 uint8_t best_father_node_history_table[BEST_FATHER_NODE_HISTORY_TABLE_SIZE];
 
 void init_best_father_node_history_table() {
