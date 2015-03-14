@@ -240,7 +240,7 @@ implementation {
 			print_link_quality_table_s();
         	print_father_node_table_s();
         	print_best_father_history_table_s();
-        	printf("SEND_CNTS:\n"%d,send_cnt);
+        	printf("SEND_CNTS: %d\n",send_cnt);
 		}
 		busy=FALSE;
 	}
