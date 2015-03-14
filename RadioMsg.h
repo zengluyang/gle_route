@@ -139,6 +139,31 @@ void print_link_quality_table() {
   printf("\n");
 }
 
+void print_link_quality_table_s() {
+  int i=0;
+  printf("LQTS:");
+  for
+  (
+    ;
+    i<sizeof(link_quality_table)/sizeof(link_quality_entry_t);
+    i++) {
+    if(link_quality_table[i].node_id!=0){
+          #ifdef DEBUG
+          //if(link_quality_table[i].node_id==1)
+            //printf("LEAF DEBUG link_quality_table[i].recv_cnt:%d link_quality_table[i].send_cnt:%d\n",link_quality_table[i].recv_cnt,link_quality_table[i].send_cnt);
+          #endif
+          printf(
+            "%d:%d %d, ",
+            link_quality_table[i].node_id,
+            link_quality_table[i].recv_cnt*0xf/link_quality_table[i].send_cnt,
+            link_quality_table[i].local_lqi
+          );
+
+    }
+  }
+  printf("\n");
+}
+
 typedef struct father_node_table_entry {
   uint8_t node_id;
   uint8_t gradient;
@@ -202,6 +227,33 @@ void print_father_node_table() {
   }
   printf("\n");
 }
+
+void print_father_node_table_s() {
+  int i=0;
+  printf("FNTS: current:%d. ",current_best_father_node);
+  for
+  (
+    ;
+    i<sizeof(father_node_table)/sizeof(father_node_table_entry_t);
+    i++) {
+    if(father_node_table[i].node_id!=0){
+          #ifdef DEBUG
+          //if(link_quality_table[i].node_id==1)
+            //printf("LEAF DEBUG link_quality_table[i].recv_cnt:%d link_quality_table[i].send_cnt:%d\n",link_quality_table[i].recv_cnt,link_quality_table[i].send_cnt);
+          #endif
+          printf(
+            "%d:%d %d %d, ",
+            father_node_table[i].node_id,
+            father_node_table[i].gradient,
+            father_node_table[i].energy,
+            father_node_table[i].lqi
+          );
+
+    }
+  }
+  printf("\n");
+}
+
 #define RANK_A 16
 #define RANK_B 16
 #define RANK_C 64
@@ -267,5 +319,15 @@ void print_best_father_history_table() {
   }
   printf("\n");
 }
+
+void print_best_father_history_table_s() {
+  int i;
+  printf("BFHTS: ");
+  for(i=0;i<BEST_FATHER_NODE_HISTORY_TABLE_SIZE;i++) {
+    printf("%d ",best_father_node_history_table[i]);
+  }
+  printf("\n");
+}
+
 
 #endif

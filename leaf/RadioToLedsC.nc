@@ -33,13 +33,22 @@ implementation {
 		//call Leds.led2On();
 	}
 
-
 	void refresh_best_father_node() {
 		father_node_table_entry_t *fne;
-
-  		current_best_father_node = calc_best_father_node();
-  		fne = access_father_node_table(current_best_father_node);
-  		if(current_best_father_node !=0 && fne->gradient + 1< self_gradient)
+		uint8_t temp_current_best_father_node;
+		for(;;)
+		{
+			temp_current_best_father_node = calc_best_father_node();
+			fne = access_father_node_table(temp_current_best_father_node);
+			if(fne->gradient >self_gradient)
+			{
+				delete_father_node_table(fne->node_id);
+			}
+			else
+				break;
+  		}
+  		current_best_father_node=temp_current_best_father_node;
+  		if(current_best_father_node !=0 )
 			self_gradient = fne->gradient + 1;
 		add_to_best_father_node_history_table(current_best_father_node);
 	}
@@ -163,6 +172,7 @@ implementation {
 			}
 		}
 
+
 		if ((rm->type_gradient & 0xf0)>>4 == TYPE_DATA && rm->next_hop_addr == TOS_NODE_ID) {
 			printf("LEAF RECV %d",len);
 			print_route_message(rm);
@@ -190,6 +200,15 @@ implementation {
 			return msg;
 		}
 
+		if ((rm->type_gradient & 0xf0)>>4 == TYPE_DATA) {
+			//printf("LEAF RECV");
+			//print_route_message(rm);
+			fne = access_father_node_table(rm->last_hop_addr);
+			fne->node_id = rm->last_hop_addr;
+			fne->gradient = rm->type_gradient & 0x0f;
+			fne->energy = (rm->energy_lqi & 0xf0) >> 4;
+			fne->lqi = lqe->local_lqi;
+		}
 
 		if ((rm->type_gradient & 0xf0)>>4 == TYPE_JRES) {
 			printf("LEAF RECV");
@@ -214,6 +233,13 @@ implementation {
 			busy = TRUE;
 		} else {
 			self_energy--;
+		}
+
+		if(send_cnt%10==0 && is_best_father_history_table_stable()) {
+			refresh_best_father_node();
+			print_link_quality_table_s();
+        	print_father_node_table_s();
+        	print_best_father_history_table_s();
 		}
 		busy=FALSE;
 	}
