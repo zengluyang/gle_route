@@ -40,7 +40,7 @@ implementation {
 		{
 			temp_current_best_father_node = calc_best_father_node();
 			fne = access_father_node_table(temp_current_best_father_node);
-			if(fne->gradient >self_gradient)
+			if(fne->gradient > self_gradient)
 			{
 				delete_father_node_table(fne->node_id);
 			}
@@ -240,6 +240,7 @@ implementation {
 			print_link_quality_table_s();
         	print_father_node_table_s();
         	print_best_father_history_table_s();
+        	printf("SEND_CNTS:\n"%d,send_cnt);
 		}
 		busy=FALSE;
 	}
