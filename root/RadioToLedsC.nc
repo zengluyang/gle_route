@@ -47,7 +47,7 @@ implementation {
 		self_setting_seq++;
         rpkt = (route_message_t*) call Packet.getPayload(&packet, sizeof(route_message_t));
         rpkt->last_hop_addr = TOS_NODE_ID;
-        rpkt->next_hop_addr = current_best_father_node;
+        rpkt->next_hop_addr = 255;
         rpkt->src_addr = TOS_NODE_ID;
         rpkt->dst_addr = 51;
         rpkt->type_gradient = TYPE_SETTING<<4 | self_gradient;
