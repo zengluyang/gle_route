@@ -1,7 +1,6 @@
 #include "../RadioMsg.h"
 #define USE_PRINT
 
-
 configuration RadioToLedsAppC {}
 implementation {
 	components MainC;
@@ -12,6 +11,11 @@ implementation {
 	components ActiveMessageC;
 	components new TimerMilliC() as JREQ_Timer;
 	components new QueueC(route_message_t,32) as SendQueue;
+
+	#ifdef SOURCE
+	components new TimerMilliC() as DATA_Timer;
+	#endif
+
 	#ifdef USE_PRINT
 	components SerialPrintfC;
 	components SerialStartC;
@@ -24,4 +28,9 @@ implementation {
 	App.Packet -> AMReceiverC;
 	App.JREQ_Timer -> JREQ_Timer;
 	App.SendQueue -> SendQueue;
+
+
+	#ifdef SOURCE
+	App.DATA_Timer -> DATA_Timer;
+	#endif
 }

@@ -10,7 +10,7 @@ implementation {
 	components new AMSenderC(MY_AM_ID);
 	components new AMReceiverC(MY_AM_ID);
 	components ActiveMessageC;
-
+	components new TimerMilliC() as SETTING_Timer;
 	#ifdef USE_PRINT
 	components SerialPrintfC;
 	components SerialStartC;
@@ -21,4 +21,5 @@ implementation {
 	App.AMControl -> ActiveMessageC;
 	App.Leds -> LedsC;
 	App.Packet -> AMReceiverC;
+	App.SETTING_Timer -> SETTING_Timer;
 }

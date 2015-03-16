@@ -10,6 +10,7 @@ module RadioToLedsC {
 		interface AMSend;
 		interface Receive;
 		interface Leds;
+		interface Timer<TMilli> as SETTING_Timer;
 	}
 }
 
@@ -19,6 +20,9 @@ implementation {
 	int self_gradient = 0;
 	int self_energy = MAX_ENERGY;
 	int send_cnt = 1;
+	int JREQ_Timer_interval = SEND_SETTING_INTERVAL;
+	bool SETTING_Timer_started = FALSE;
+	uint16_t self_setting_seq = 0;
 	event void Boot.booted() {
 		printf("ROOT BOOT\n");
 		call AMControl.start();
@@ -29,13 +33,47 @@ implementation {
 
 	event void AMControl.startDone(error_t err) {
 		if(err==SUCCESS) {
-			//good!
-		} else {
 			init_link_quality_table();
+			//good!
+		} else {		
 			call AMControl.start();
+
 		}
 	}
 
+	void sendTestSetting() {
+		route_message_t* rpkt;
+		self_setting_seq++;
+        rpkt = (route_message_t*) call Packet.getPayload(&packet, sizeof(route_message_t));
+        rpkt->last_hop_addr = TOS_NODE_ID;
+        rpkt->next_hop_addr = current_best_father_node;
+        rpkt->src_addr = TOS_NODE_ID;
+        rpkt->dst_addr = 51;
+        rpkt->type_gradient = TYPE_SETTING<<4 | self_gradient;
+        //rpkt->energy_lqi = calc_uniform_energy(self_energy)<<4 | lqe->local_lqi;
+        //rpkt->pair_addr = lqe->node_id;
+        rpkt->seq = self_setting_seq;
+        rpkt->self_send_cnt = send_cnt;
+        rpkt->length = 8;
+        rpkt->payload[0] = 's';
+        rpkt->payload[1] = 'e';
+        rpkt->payload[2] = 't';
+        rpkt->payload[3] = 't';
+        rpkt->payload[4] = 'i';
+        rpkt->payload[5] = 'n';
+        rpkt->payload[6] = 'g';
+        rpkt->payload[7] = '\0';
+        if(!busy && call AMSend.send(AM_BROADCAST_ADDR,&packet,sizeof(route_message_t)) == SUCCESS ){
+        	printf("ROOT SEND");
+        	print_route_message(rpkt);
+        	busy=TRUE;
+        }
+
+	}
+
+	event void SETTING_Timer.fired() {
+            sendTestSetting();
+    }
 	event void AMControl.stopDone(error_t error) {}
 
 
@@ -68,7 +106,7 @@ implementation {
 			sm->src_addr = TOS_NODE_ID;
 			sm->dst_addr = rm->src_addr;
 			sm->type_gradient = TYPE_JRES<<4 | self_gradient;
-			sm->energy_lqi = calc_uniform_energy(self_energy)<<4 | lqe->local_lqi; // TODO 
+			sm->energy_lqi = calc_uniform_energy(self_energy)<<4 | lqe->recv_cnt*0xf/lqe->send_cnt;  // TODO 
 			sm->self_send_cnt = send_cnt;
 			sm->length = 0;
 			//printf("sm->energy_lqi: %d\n",sm->energy_lqi);
@@ -80,6 +118,11 @@ implementation {
 		} else if ((rm->type_gradient & 0xf0)>>4 == TYPE_DATA) {
 			printf("ROOT RECV");
 			print_route_message(rm);
+			if(!SETTING_Timer_started) {
+				printf("ROOT DEBUG SETTING TIMER call SETTING_Timer.startPeriodic(SEND_SETTING_INTERVAL);\n");
+				call SETTING_Timer.startPeriodic(SEND_SETTING_INTERVAL);
+				SETTING_Timer_started = TRUE;
+			}
 		}
 
 

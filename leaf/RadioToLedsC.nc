@@ -1,7 +1,7 @@
 #include "Timer.h"
 #include "../RadioMsg.h"
 #include "printf.h"
-//root node
+//leaf node
 
 
 module RadioToLedsC {
@@ -14,6 +14,11 @@ module RadioToLedsC {
 		interface Leds;
 		interface Timer<TMilli> as JREQ_Timer;
 		interface Queue<route_message_t> as SendQueue;
+
+		#ifdef SOURCE
+		interface Timer<TMilli> as DATA_Timer;
+		#endif
+
 	}
 }
 
@@ -24,6 +29,8 @@ implementation {
 	int self_energy = MAX_ENERGY;
 	uint16_t send_cnt = 1;
 	int JREQ_Timer_interval = SEND_JREQ_INTERVAL;
+	uint16_t self_setting_seq = 0;
+
 	event void Boot.booted() {
 		printf("LEAF BOOT\n");
 		printf("sizeof(route_message_t):%d\n",sizeof(route_message_t));
@@ -32,6 +39,37 @@ implementation {
 		//call Leds.led1On();
 		//call Leds.led2On();
 	}
+
+
+	#ifdef SOURCE
+	#warning "source defed. event void DATA_Timer.fired()"
+	event void DATA_Timer.fired() {
+        route_message_t* rpkt;
+        rpkt = (route_message_t*) call Packet.getPayload(&packet, sizeof(route_message_t));
+        rpkt->last_hop_addr = TOS_NODE_ID;
+        rpkt->next_hop_addr = current_best_father_node;
+        rpkt->src_addr = TOS_NODE_ID;
+        rpkt->dst_addr = 0x01;
+        rpkt->type_gradient = TYPE_DATA<<4 | self_gradient;
+        //rpkt->energy_lqi = calc_uniform_energy(self_energy)<<4 | lqe->local_lqi;
+        //rpkt->pair_addr = lqe->node_id;
+        rpkt->seq = 0;
+        rpkt->self_send_cnt = send_cnt;
+        rpkt->length = 6;
+        rpkt->payload[0] = 'h';
+        rpkt->payload[1] = 'e';
+        rpkt->payload[2] = 'l';
+        rpkt->payload[3] = 'l';
+        rpkt->payload[4] = 'o';
+        rpkt->payload[5] = '\0';
+        if(!busy && call AMSend.send(AM_BROADCAST_ADDR,&packet,sizeof(route_message_t)) == SUCCESS ){
+        	printf("SOURCE SEND");
+        	print_route_message(rpkt);
+        	busy=TRUE;
+        }
+            //printfflush();
+    }
+    #endif
 
 	void refresh_best_father_node() {
 		father_node_table_entry_t *fne;
@@ -53,13 +91,22 @@ implementation {
 		add_to_best_father_node_history_table(current_best_father_node);
 	}
 
+	void init() {
+		init_link_quality_table();
+		init_father_node_table();
+		init_best_father_node_history_table();
+		init_setting_route_table();
+		call JREQ_Timer.startOneShot(SEND_JREQ_INTERVAL);
+		#ifdef SOURCE
+		call DATA_Timer.startPeriodic(9500);
+		#endif
+	}
+
 	event void AMControl.startDone(error_t err) {
 		if(err==SUCCESS) {
 			//good!
-			init_link_quality_table();
-			init_father_node_table();
-			init_best_father_node_history_table();
-			call JREQ_Timer.startOneShot(SEND_JREQ_INTERVAL);
+			init();
+			
 		} else {
 			
 			call AMControl.start();
@@ -132,6 +179,8 @@ implementation {
 		route_message_t *sm;
 		link_quality_entry_t *lqe;
 		father_node_table_entry_t *fne;
+		setting_route_table_entry_t *sre;
+
  		int i;
  		int to_send_node_id;
 
@@ -195,6 +244,35 @@ implementation {
 			}
 		}
 
+		if ((rm->type_gradient & 0xf0)>>4 == TYPE_SETTING) {
+			sre = access_setting_route_table(rm->dst_addr);
+			printf("LEAF RECV");
+			print_route_message(rm);
+			//printf("LEAF DEBUG SETTING rm->dst_addr:%d sre->next_hop_addr:%d\n",rm->dst_addr,sre->next_hop_addr);
+			if(sre->next_hop_addr!=0 && self_setting_seq < rm->seq) {
+				self_setting_seq = rm->seq;
+				sm->last_hop_addr = TOS_NODE_ID;
+				sm->next_hop_addr = 0xff;
+				sm->src_addr = rm->src_addr;
+				sm->dst_addr = rm->dst_addr;
+				sm->type_gradient = TYPE_SETTING<<4 | self_gradient;
+				sm->energy_lqi = calc_uniform_energy(self_energy)<<4 | lqe->recv_cnt*0xf/lqe->send_cnt; // TODO
+				sm->pair_addr = lqe->node_id; 
+				sm->length = rm->length;
+				sm->self_send_cnt = send_cnt;
+				sm->seq = rm->seq;
+				for(i=0;i<sm->length;i++) {
+					sm->payload[i] = rm->payload[i];
+				}
+				if(!busy && call AMSend.send(AM_BROADCAST_ADDR,&packet, sizeof(route_message_t))==SUCCESS) {
+					busy = TRUE;
+					printf("LEAF SEND");
+					print_route_message(sm);
+				}
+
+			}
+		}
+
 		if ((rm->type_gradient & 0xf0)>>4 == TYPE_DATA && ((rm->type_gradient & 0x0f) != 15)) {
 			//printf("LEAF RECV");
 			//print_route_message(rm);
@@ -204,6 +282,13 @@ implementation {
 			fne->gradient = rm->type_gradient & 0x0f;
 			fne->energy = (rm->energy_lqi & 0xf0) >> 4;
 			fne->lqi = lqe->local_lqi;
+		}
+
+		if ((rm->type_gradient & 0xf0)>>4 == TYPE_DATA) {
+			sre = access_setting_route_table(rm->src_addr);
+			sre->dst_addr = rm->src_addr;
+			sre->next_hop_addr = rm->last_hop_addr;
+			print_setting_route_table();
 		}
 
 		if((rm->type_gradient & 0x0f) > self_gradient) {

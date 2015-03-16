@@ -11,13 +11,15 @@ enum
 
 #define SEND_JREQ_INTERVAL 5000//ms
 #define MAX_ENERGY 1000
+#define SEND_SETTING_INTERVAL 60000ul
+
 
 #define TYPE_JREQ       0x01
 #define TYPE_JRES       0x02
 #define TYPE_RU         0x03
 #define TYPE_RR         0x04
 #define TYPE_DATA       0x05
-#define TYPE_SETTTING   0x06
+#define TYPE_SETTING   0x06
 
 int calc_uniform_energy(int engery) {
   int ue = 0xf*(engery*1.0/MAX_ENERGY);
@@ -57,7 +59,7 @@ void print_route_message(route_message_t* rm){
     case TYPE_DATA:
       printf(" DATA");
       break;
-    case TYPE_SETTTING:
+    case TYPE_SETTING:
       printf(" SETTING");
       break;
   }
