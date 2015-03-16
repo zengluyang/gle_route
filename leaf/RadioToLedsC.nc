@@ -28,9 +28,9 @@ implementation {
 	int self_gradient = 15;
 	int self_energy = MAX_ENERGY;
 	uint16_t send_cnt = 1;
+	uint16_t recv_cnt = 0;
 	int JREQ_Timer_interval = SEND_JREQ_INTERVAL;
 	uint16_t self_setting_seq = 0;
-
 	event void Boot.booted() {
 		printf("LEAF BOOT\n");
 		printf("sizeof(route_message_t):%d\n",sizeof(route_message_t));
@@ -183,7 +183,7 @@ implementation {
 
  		int i;
  		int to_send_node_id;
-
+ 		recv_cnt ++;
 		rm = (route_message_t *) payload;
 		sm = (route_message_t *) call Packet.getPayload(&packet,sizeof(route_message_t));
 		lqe = access_link_quality_table(rm->last_hop_addr);
@@ -202,7 +202,7 @@ implementation {
 		}
 
 		if((rm->type_gradient & 0xf0)>>4 == TYPE_JREQ && self_gradient!=0X0f) {
-			printf("LEAF RECV %d",len);
+			printf("LEAF RECV %d",recv_cnt);
 			print_route_message(rm);
 			sm->last_hop_addr = TOS_NODE_ID;
 			sm->next_hop_addr = rm->last_hop_addr;
@@ -223,7 +223,7 @@ implementation {
 
 
 		if ((rm->type_gradient & 0xf0)>>4 == TYPE_DATA && rm->next_hop_addr == TOS_NODE_ID) {
-			printf("LEAF RECV %d",len);
+			printf("LEAF RECV %d",recv_cnt);
 			print_route_message(rm);
 			sm->last_hop_addr = TOS_NODE_ID;
 			sm->next_hop_addr = current_best_father_node;
@@ -246,7 +246,7 @@ implementation {
 
 		if ((rm->type_gradient & 0xf0)>>4 == TYPE_SETTING) {
 			sre = access_setting_route_table(rm->dst_addr);
-			printf("LEAF RECV");
+			printf("LEAF RECV %d",recv_cnt);
 			print_route_message(rm);
 			//printf("LEAF DEBUG SETTING rm->dst_addr:%d sre->next_hop_addr:%d\n",rm->dst_addr,sre->next_hop_addr);
 			if(sre->next_hop_addr!=0 && self_setting_seq < rm->seq) {
@@ -297,7 +297,7 @@ implementation {
 
 
 		if ((rm->type_gradient & 0xf0)>>4 == TYPE_JRES) {
-			printf("LEAF RECV");
+			printf("LEAF RECV %d",recv_cnt);
 			print_route_message(rm);
 			fne = access_father_node_table(rm->last_hop_addr);
 			fne->node_id = rm->last_hop_addr;

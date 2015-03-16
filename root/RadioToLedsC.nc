@@ -20,6 +20,7 @@ implementation {
 	int self_gradient = 0;
 	int self_energy = MAX_ENERGY;
 	int send_cnt = 1;
+	uint16_t recv_cnt = 0;
 	int JREQ_Timer_interval = SEND_SETTING_INTERVAL;
 	bool SETTING_Timer_started = FALSE;
 	uint16_t self_setting_seq = 0;
@@ -88,18 +89,20 @@ implementation {
 		sm = (route_message_t *) call Packet.getPayload(&packet,sizeof(route_message_t));
 		lqe = access_link_quality_table(rm->last_hop_addr);
 
-		
+		recv_cnt++;
 
+		if(rm->pair_addr == TOS_NODE_ID && (rm->energy_lqi & 0x0f)!=0) {
+				lqe->local_lqi = rm->energy_lqi & 0x0f;
+		}
+		
 		if(lqe->node_id==0) {
 			lqe->node_id = rm->last_hop_addr;
 			lqe->recv_cnt = 1;
-			lqe->send_cnt = rm->self_send_cnt;
-			if(rm->pair_addr == TOS_NODE_ID) {
-				lqe->local_lqi = rm->energy_lqi & 0x0f;
-			}
+		} else {
+			lqe->recv_cnt++;
 		}
 		if((rm->type_gradient & 0xf0)>>4 == TYPE_JREQ) {
-			printf("ROOT RECV");
+			printf("ROOT RECV %d",recv_cnt);
 			print_route_message(rm);
 			sm->last_hop_addr = TOS_NODE_ID;
 			sm->next_hop_addr = rm->last_hop_addr;
@@ -116,7 +119,7 @@ implementation {
 				print_route_message(sm);
 			}
 		} else if ((rm->type_gradient & 0xf0)>>4 == TYPE_DATA) {
-			printf("ROOT RECV");
+			printf("ROOT RECV %d",recv_cnt);
 			print_route_message(rm);
 			if(!SETTING_Timer_started) {
 				printf("ROOT DEBUG SETTING TIMER call SETTING_Timer.startPeriodic(SEND_SETTING_INTERVAL);\n");
