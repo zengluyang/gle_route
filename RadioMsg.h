@@ -255,10 +255,10 @@ void print_father_node_table_s() {
 }
 
 #define RANK_A 16
-#define RANK_B 16
-#define RANK_C 64
+#define RANK_B 64
+#define RANK_C 16
 uint32_t calc_father_rank(uint8_t gradient,uint8_t energy,uint8_t lqi) {
-  return RANK_A/(gradient+1) + RANK_B*energy + RANK_C*lqi;
+  return RANK_A*(15-gradient) + RANK_B*energy + RANK_C*lqi;
 }
 uint8_t calc_best_father_node() {
   uint8_t best_node_id = 0;
@@ -319,6 +319,59 @@ void print_best_father_history_table() {
   }
   printf("\n");
 }
+
+
+#define SETTING_ROUTE_TABLE_SIZE 256 
+
+typedef struct setting_route_table_entry{
+  uint8_t dst_addr;
+  uint8_t next_hop_addr;
+} setting_route_table_entry_t;
+
+setting_route_table_entry_t setting_route_table[SETTING_ROUTE_TABLE_SIZE];
+
+void init_setting_route_table() {
+  int i;
+  for(i=0;i<SETTING_ROUTE_TABLE_SIZE;i++) {
+    setting_route_table[i].dst_addr = 0;
+    setting_route_table[i].next_hop_addr = 0;
+  }
+}
+
+setting_route_table_entry_t* access_setting_route_table(uint8_t node_id){
+  return &(setting_route_table[node_id]);
+}
+
+void delete_setting_route_table(uint8_t node_id) {
+    setting_route_table[node_id].dst_addr=0;
+    setting_route_table[node_id].next_hop_addr=0;
+}
+
+void print_setting_route_table() {
+  int i=0;
+  printf("SRT:");
+  for
+  (
+    ;
+    i<sizeof(setting_route_table)/sizeof(setting_route_table_entry_t);
+    i++) {
+    if((setting_route_table[i]).dst_addr!=0){
+          #ifdef DEBUG
+          //if(link_quality_table[i].node_id==1)
+            //printf("LEAF DEBUG link_quality_table[i].recv_cnt:%d link_quality_table[i].send_cnt:%d\n",link_quality_table[i].recv_cnt,link_quality_table[i].send_cnt);
+          #endif
+          printf(
+            "%d %d, ",
+            setting_route_table[i].dst_addr,
+            setting_route_table[i].next_hop_addr
+          );
+
+    }
+  }
+  printf("\n");
+}
+
+
 
 void print_best_father_history_table_s() {
   int i;

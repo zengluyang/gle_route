@@ -195,20 +195,21 @@ implementation {
 			}
 		}
 
-
-		if((rm->type_gradient & 0x0f) > self_gradient) {
-			return msg;
-		}
-
-		if ((rm->type_gradient & 0xf0)>>4 == TYPE_DATA) {
+		if ((rm->type_gradient & 0xf0)>>4 == TYPE_DATA && ((rm->type_gradient & 0x0f) != 15)) {
 			//printf("LEAF RECV");
 			//print_route_message(rm);
 			fne = access_father_node_table(rm->last_hop_addr);
+			printf("LEAF RECV OTHER DATA ALTER FNE:%d:%d %d %d\n",rm->last_hop_addr,rm->type_gradient & 0x0f,(rm->energy_lqi & 0xf0) >> 4,lqe->local_lqi);
 			fne->node_id = rm->last_hop_addr;
 			fne->gradient = rm->type_gradient & 0x0f;
 			fne->energy = (rm->energy_lqi & 0xf0) >> 4;
 			fne->lqi = lqe->local_lqi;
 		}
+
+		if((rm->type_gradient & 0x0f) > self_gradient) {
+			return msg;
+		}
+
 
 		if ((rm->type_gradient & 0xf0)>>4 == TYPE_JRES) {
 			printf("LEAF RECV");
@@ -235,7 +236,7 @@ implementation {
 			self_energy--;
 		}
 
-		if(send_cnt%10==0 && is_best_father_history_table_stable()) {
+		if(send_cnt%1==0 && is_best_father_history_table_stable()) {
 			refresh_best_father_node();
 			print_link_quality_table_s();
         	print_father_node_table_s();
