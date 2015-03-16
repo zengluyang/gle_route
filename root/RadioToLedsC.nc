@@ -94,7 +94,7 @@ implementation {
 		if(rm->pair_addr == TOS_NODE_ID && (rm->energy_lqi & 0x0f)!=0) {
 				lqe->local_lqi = rm->energy_lqi & 0x0f;
 		}
-		
+
 		if(lqe->node_id==0) {
 			lqe->node_id = rm->last_hop_addr;
 			lqe->recv_cnt = 1;
@@ -112,6 +112,7 @@ implementation {
 			sm->energy_lqi = calc_uniform_energy(self_energy)<<4 | lqe->recv_cnt*0xf/lqe->send_cnt;  // TODO 
 			sm->self_send_cnt = send_cnt;
 			sm->length = 0;
+			sm->pair_addr = lqe->node_id;
 			//printf("sm->energy_lqi: %d\n",sm->energy_lqi);
 			if(!busy && call AMSend.send(AM_BROADCAST_ADDR,&packet, sizeof(route_message_t))==SUCCESS) {
 				busy = TRUE;
