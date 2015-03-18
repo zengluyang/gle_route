@@ -13,6 +13,7 @@ module RadioToLedsC {
 		interface Receive;
 		interface Leds;
 		interface Timer<TMilli> as JREQ_Timer;
+		interface Timer<TMilli> as ACK_Timer;
 		interface Queue<route_message_t> as SendQueue;
 
 		#ifdef SOURCE
@@ -43,6 +44,7 @@ implementation {
 
 	#ifdef SOURCE
 	#warning "source defed. event void DATA_Timer.fired()"
+	uint16_t data_seq;
 	event void DATA_Timer.fired() {
         route_message_t* rpkt;
         rpkt = (route_message_t*) call Packet.getPayload(&packet, sizeof(route_message_t));
@@ -53,7 +55,7 @@ implementation {
         rpkt->type_gradient = TYPE_DATA<<4 | self_gradient;
         //rpkt->energy_lqi = calc_uniform_energy(self_energy)<<4 | lqe->local_lqi;
         //rpkt->pair_addr = lqe->node_id;
-        rpkt->seq = 0;
+        rpkt->seq = data_seq++;
         rpkt->self_send_cnt = send_cnt;
         rpkt->length = 6;
         rpkt->payload[0] = 'h';
@@ -70,6 +72,13 @@ implementation {
             //printfflush();
     }
     #endif
+
+    uint16_t wait_ack_id = 0;
+    uint16_t last_acked_id = 0;
+
+    event void ACK_Timer.fired() {
+
+    }
 
 	void refresh_best_father_node() {
 		father_node_table_entry_t *fne;
@@ -96,7 +105,9 @@ implementation {
 		init_father_node_table();
 		init_best_father_node_history_table();
 		init_setting_route_table();
+		init_acked_packet_table();
 		call JREQ_Timer.startOneShot(SEND_JREQ_INTERVAL);
+		call ACK_Timer.startOneShot(SEND_JREQ_INTERVAL+100);
 		#ifdef SOURCE
 		call DATA_Timer.startPeriodic(9500);
 		#endif
@@ -188,7 +199,6 @@ implementation {
 		sm = (route_message_t *) call Packet.getPayload(&packet,sizeof(route_message_t));
 		lqe = access_link_quality_table(rm->last_hop_addr);
 
-
 		if(rm->pair_addr == TOS_NODE_ID && (rm->energy_lqi & 0x0f)!=0) {
 				lqe->local_lqi = rm->energy_lqi & 0x0f;
 		}
@@ -214,6 +224,7 @@ implementation {
 			sm->length = 0;
 			sm->self_send_cnt = send_cnt;
 			//printf("sm->energy_lqi: %d\n",sm->energy_lqi);
+			refresh_best_father_node();
 			if(!busy && call AMSend.send(AM_BROADCAST_ADDR,&packet, sizeof(route_message_t))==SUCCESS) {
 				busy = TRUE;
 				printf("LEAF SEND");
@@ -237,10 +248,21 @@ implementation {
 			for(i=0;i<sm->length;i++) {
 				sm->payload[i] = rm->payload[i];
 			}
+			
+
+			if(rm->last_hop_addr == current_best_father_node) {
+				//recv from current_best_father_node
+				//can be used as ack.
+				set_acked_packet_table(rm->seq);
+				printf_acked_packet_table();
+			}
+			refresh_best_father_node();
 			if(!busy && call AMSend.send(AM_BROADCAST_ADDR,&packet, sizeof(route_message_t))==SUCCESS) {
 				busy = TRUE;
 				printf("LEAF SEND");
 				print_route_message(sm);
+				add_to_acked_packet_table(rm->seq);
+				printf_acked_packet_table();
 			}
 		}
 
@@ -264,6 +286,8 @@ implementation {
 				for(i=0;i<sm->length;i++) {
 					sm->payload[i] = rm->payload[i];
 				}
+
+				refresh_best_father_node();
 				if(!busy && call AMSend.send(AM_BROADCAST_ADDR,&packet, sizeof(route_message_t))==SUCCESS) {
 					busy = TRUE;
 					printf("LEAF SEND");
@@ -308,6 +332,11 @@ implementation {
 				refresh_best_father_node();
 			}
 		}
+		if (is_no_ack_acked_packet_table()) {
+			delete_father_node_table(current_best_father_node);
+			refresh_best_father_node();
+			call JREQ_Timer.startOneShot(500);
+		}
 		return msg;
 	}
 
@@ -326,9 +355,13 @@ implementation {
 			print_link_quality_table_s();
         	print_father_node_table_s();
         	print_best_father_history_table_s();
-        	printf("SEND_CNTS: %d\n",send_cnt);
+        	printf("SEND_CNTS: %d RECV_CNTS: %d\n",send_cnt,recv_cnt);
 		}
 		busy=FALSE;
+
+		if(error!=SUCCESS) {
+			printf("LEAF NO ACK\n");
+		}
 	}
 
 
