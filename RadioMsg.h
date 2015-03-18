@@ -344,6 +344,16 @@ void init_acked_packet_table() {
   acked_packet_table_cur_index = 0;
 }
 
+void printf_acked_packet_table(){
+  int i;
+  printf("APT:");
+  for(i=0;i<acked_packet_table_cur_index;i++) {
+    printf("%d %d, ",acked_packet_table[i].seq,acked_packet_table[i].acked);
+  }
+  printf("\n");
+}
+
+
 void add_to_acked_packet_table(uint16_t seq) {
   acked_packet_table[acked_packet_table_cur_index].seq = seq;
   acked_packet_table[acked_packet_table_cur_index].acked = FALSE;
@@ -355,6 +365,8 @@ void add_to_acked_packet_table(uint16_t seq) {
 
 void set_acked_packet_table(uint16_t seq){
   int i;
+  printf("seq: %d, ",seq);
+  printf_acked_packet_table();
   for(i=0;i<acked_packet_table_cur_index;i++) {
     if(acked_packet_table[acked_packet_table_cur_index].seq == seq) {
       acked_packet_table[acked_packet_table_cur_index].acked = TRUE;
@@ -375,14 +387,6 @@ bool is_no_ack_acked_packet_table(){
   return TRUE;
 }
 
-void printf_acked_packet_table(){
-  int i;
-  printf("APT:");
-  for(i=0;i<acked_packet_table_cur_index;i++) {
-    printf("%d %d, ",acked_packet_table[i].seq,acked_packet_table[i].acked);
-  }
-  printf("\n");
-}
 
 #define SETTING_ROUTE_TABLE_SIZE 256 
 

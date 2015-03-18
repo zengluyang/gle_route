@@ -244,25 +244,19 @@ implementation {
 			sm->energy_lqi = calc_uniform_energy(self_energy)<<4 | lqe->recv_cnt*0xf/lqe->send_cnt; // TODO 
 			sm->pair_addr = lqe->node_id;
 			sm->length = rm->length;
+			sm->seq = rm->seq;
 			sm->self_send_cnt = send_cnt;
 			for(i=0;i<sm->length;i++) {
 				sm->payload[i] = rm->payload[i];
 			}
 			
-
-			if(rm->last_hop_addr == current_best_father_node) {
-				//recv from current_best_father_node
-				//can be used as ack.
-				set_acked_packet_table(rm->seq);
-				printf_acked_packet_table();
-			}
 			refresh_best_father_node();
 			if(!busy && call AMSend.send(AM_BROADCAST_ADDR,&packet, sizeof(route_message_t))==SUCCESS) {
 				busy = TRUE;
 				printf("LEAF SEND");
 				print_route_message(sm);
-				add_to_acked_packet_table(rm->seq);
-				printf_acked_packet_table();
+				//add_to_acked_packet_table(rm->seq);
+				//printf_acked_packet_table();
 			}
 		}
 
@@ -313,6 +307,13 @@ implementation {
 			sre->dst_addr = rm->src_addr;
 			sre->next_hop_addr = rm->last_hop_addr;
 			print_setting_route_table();
+
+			if(rm->last_hop_addr == current_best_father_node) {
+				//recv from current_best_father_node
+				//can be used as ack.
+				//set_acked_packet_table(rm->seq);
+				//printf_acked_packet_table();
+			}
 		}
 
 		if((rm->type_gradient & 0x0f) > self_gradient) {
@@ -333,9 +334,9 @@ implementation {
 			}
 		}
 		if (is_no_ack_acked_packet_table()) {
-			delete_father_node_table(current_best_father_node);
-			refresh_best_father_node();
-			call JREQ_Timer.startOneShot(500);
+			//delete_father_node_table(current_best_father_node);
+			//refresh_best_father_node();
+			//call JREQ_Timer.startOneShot(500);
 		}
 		return msg;
 	}
