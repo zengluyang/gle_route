@@ -106,6 +106,7 @@ implementation {
 		init_best_father_node_history_table();
 		init_setting_route_table();
 		init_acked_packet_table();
+		init_packet_to_be_acked_table();
 		call JREQ_Timer.startOneShot(SEND_JREQ_INTERVAL);
 		call ACK_Timer.startOneShot(SEND_JREQ_INTERVAL+100);
 		#ifdef SOURCE
@@ -257,6 +258,12 @@ implementation {
 				print_route_message(sm);
 				//add_to_acked_packet_table(rm->seq);
 				//printf_acked_packet_table();
+				if(add_to_packet_to_be_acked_table(rm->seq,sm->next_hop_addr)==FALSE) {
+					delete_father_node_table(sm->next_hop_addr);
+					refresh_best_father_node();
+					call JREQ_Timer.startPeriodic(SEND_JREQ_INTERVAL);
+				}
+				print_packet_to_be_acked_table();
 			}
 		}
 
@@ -308,12 +315,12 @@ implementation {
 			sre->next_hop_addr = rm->last_hop_addr;
 			print_setting_route_table();
 
-			if(rm->last_hop_addr == current_best_father_node) {
-				//recv from current_best_father_node
-				//can be used as ack.
-				//set_acked_packet_table(rm->seq);
-				//printf_acked_packet_table();
-			}
+			//recv from current_best_father_node
+			//can be used as ack.
+			//set_acked_packet_table(rm->seq);
+			//printf_acked_packet_table();
+			delete_packet_to_be_acked_table(rm->seq,rm->last_hop_addr);
+			print_packet_to_be_acked_table();
 		}
 
 		if((rm->type_gradient & 0x0f) > self_gradient) {
