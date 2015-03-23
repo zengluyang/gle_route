@@ -1,0 +1,14 @@
+{
+	"folders":
+	[
+		{
+			"path": "./"
+		}
+	],
+		"build_systems": [
+		{
+			"name": "Make telosb",
+			"cmd": ["make", "telosb"]
+		}
+	]
+}
