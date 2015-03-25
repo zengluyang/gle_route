@@ -3,7 +3,7 @@ COMPONENT = SimpleCollectionAppC
 CFLAGS += -I$(TOSDIR)/lib/printf \
 			-I$(TOSDIR)/lib/net \
 			-I$(TOSDIR)/lib/net/ctp \
-			-I$(TOSDIR)/lib/net/4bitle 
+			-I$(TOSDIR)/lib/net/le 
 
 
 CFLAGS += -DTOSH_DATA_LENGTH=114 
